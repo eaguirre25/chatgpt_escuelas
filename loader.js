@@ -5,21 +5,31 @@
     'data/radios_04_1.js','data/radios_04_2.js','data/radios_04_3.js','data/radios_04_4.js','data/radios_04_5.js',
     'data/radios_05_1.js','data/radios_05_2.js','data/students.js'
   ];
-  function load(src){
-    return new Promise((resolve,reject)=>{
-      const s=document.createElement('script');
-      s.src=src+'?v=20260824b';
-      s.onload=resolve;
-      s.onerror=()=>reject(new Error('No se pudo cargar '+src));
-      document.head.appendChild(s);
-    });
+
+  async function fetchAndRun(path){
+    const url=base+path+'?v=20260824c';
+    const r=await fetch(url,{cache:'no-store'});
+    if(!r.ok) throw new Error(`No se pudo descargar ${path} (HTTP ${r.status})`);
+    const code=await r.text();
+    try{
+      (0,eval)(code);
+    }catch(e){
+      throw new Error(`Error ejecutando ${path}: ${e.message}`);
+    }
   }
+
   try{
     window.RADIOS_RAW=[];
-    for(const f of files) await load(base+f);
-    console.log('Radios cargados:',window.RADIOS_RAW.length,'Estudiantes:',window.STUDENT_DATA?.features?.length||0);
-    if(!window.RADIOS_RAW.length) throw new Error('RADIOS_RAW quedó vacío');
-    await load(base+'app.js');
+    window.STUDENT_DATA=undefined;
+    for(const f of files) await fetchAndRun(f);
+
+    const nr=window.RADIOS_RAW?.length||0;
+    const ne=window.STUDENT_DATA?.features?.length||0;
+    console.log('Radios cargados:',nr,'Estudiantes:',ne);
+    if(nr!==524) throw new Error(`Se cargaron ${nr} radios; se esperaban 524`);
+    if(ne!==50) throw new Error(`Se cargaron ${ne} estudiantes; se esperaban 50`);
+
+    await fetchAndRun('app.js');
   }catch(err){
     console.error(err);
     const m=document.getElementById('map');
