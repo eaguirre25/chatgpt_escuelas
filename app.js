@@ -36,6 +36,26 @@ function renderBars(el,data,total){
   </div>`).join("");
 }
 
+function normalizeIaName(name){
+  const clean=String(name||"").trim();
+  const key=clean.toLowerCase().replace(/[^a-z0-9]/g,"");
+  if(key==="chatgpt"||key==="chatgp") return "ChatGPT";
+  return clean;
+}
+
+function mentionSummary(counts){
+  const grouped={};
+  Object.entries(counts||{}).forEach(([name,value])=>{
+    const normalized=normalizeIaName(name);
+    if(!normalized) return;
+    grouped[normalized]=(grouped[normalized]||0)+(Number(value)||0);
+  });
+  const ordered=Object.entries(grouped).sort((a,b)=>
+    b[1]-a[1] || (a[0]==="ChatGPT"?-1:b[0]==="ChatGPT"?1:a[0].localeCompare(b[0],"es"))
+  );
+  return {grouped,ordered,top:ordered[0]?.[0]||"Sin IA"};
+}
+
 function buildStats(geo){
   const active=geo.features.filter(f=>f.properties.n>0);
   const ia={};
@@ -58,28 +78,32 @@ function buildStats(geo){
 function selectedHtml(p){
   let counts={};
   try{ counts=typeof p.ia_counts==="string"?JSON.parse(p.ia_counts):(p.ia_counts||{}); }catch{}
-  const ordered=Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+  const {ordered}=mentionSummary(counts);
   return `<div><b>Radio:</b> ${p.LINK}</div>
     <div><b>Estudiantes:</b> ${p.n}</div>
     <div><b>NBI:</b> ${Number(p.pct_nbi).toFixed(1)}%</div>
     <div><b>IA predominante:</b> ${p.top_ia||"—"}</div>
-    ${ordered.length?`<div style="margin-top:8px"><b>Herramientas declaradas:</b><br>${ordered.map(([k,v])=>`${k}: ${v}`).join("<br>")}</div>`:""}`;
+    ${ordered.length?`<div style="margin-top:8px"><b>Menciones:</b><br>${ordered.map(([k,v])=>`${k}: ${v}`).join("<br>")}</div>`:`<div style="margin-top:8px">Sin menciones de IA.</div>`}`;
 }
 
 function toGeoJSON(raw){
   return {
     type:"FeatureCollection",
-    features:(raw||[]).map(([LINK,pct_nbi,n,top_ia,ia_counts,geometryType,coordinates])=>({
-      type:"Feature",
-      geometry:{type:geometryType,coordinates},
-      properties:{LINK,pct_nbi,n,top_ia,ia_counts:JSON.stringify(ia_counts||{})}
-    }))
+    features:(raw||[]).map(([LINK,pct_nbi,n,_top_ia,ia_counts,geometryType,coordinates])=>{
+      const summary=mentionSummary(ia_counts);
+      return {
+        type:"Feature",
+        geometry:{type:geometryType,coordinates},
+        properties:{LINK,pct_nbi,n,top_ia:summary.top,ia_counts:JSON.stringify(summary.grouped)}
+      };
+    })
   };
 }
 
 initLegends();
 
 const radios=toGeoJSON(window.RADIOS_RAW||[]);
+const activeRadios={type:"FeatureCollection",features:radios.features.filter(f=>f.properties.n>0)};
 const students=window.STUDENT_DATA||{type:"FeatureCollection",features:[]};
 buildStats(radios);
 
@@ -89,7 +113,7 @@ const map=new maplibregl.Map({
     version:8,
     glyphs:"https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
     sources:{
-      carto:{
+      cartoDark:{
         type:"raster",
         tiles:[
           "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png",
@@ -97,9 +121,21 @@ const map=new maplibregl.Map({
         ],
         tileSize:256,
         attribution:"© OpenStreetMap contributors © CARTO"
+      },
+      cartoLight:{
+        type:"raster",
+        tiles:[
+          "https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png",
+          "https://b.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png"
+        ],
+        tileSize:256,
+        attribution:"© OpenStreetMap contributors © CARTO"
       }
     },
-    layers:[{id:"base",type:"raster",source:"carto",paint:{"raster-opacity":0.92}}]
+    layers:[
+      {id:"base-dark",type:"raster",source:"cartoDark",paint:{"raster-opacity":0.92}},
+      {id:"base-light",type:"raster",source:"cartoLight",layout:{visibility:"none"},paint:{"raster-opacity":0.96}}
+    ]
   },
   center:[-58.565,-34.57],
   zoom:12.3,
@@ -110,8 +146,18 @@ const map=new maplibregl.Map({
 
 map.addControl(new maplibregl.NavigationControl({visualizePitch:true}),"top-right");
 
+let mapTheme="dark";
+function toggleMapTheme(){
+  mapTheme=mapTheme==="dark"?"light":"dark";
+  map.setLayoutProperty("base-dark","visibility",mapTheme==="dark"?"visible":"none");
+  map.setLayoutProperty("base-light","visibility",mapTheme==="light"?"visible":"none");
+  const button=document.getElementById("themeToggle");
+  button.textContent=mapTheme==="dark"?"☀ Mapa claro (L)":"☾ Mapa oscuro (L)";
+  button.setAttribute("aria-pressed",String(mapTheme==="light"));
+}
+
 map.on("load",()=>{
-  map.addSource("radios",{type:"geojson",data:radios});
+  map.addSource("radios",{type:"geojson",data:activeRadios});
   map.addSource("students",{type:"geojson",data:students});
   map.addSource("schools",{type:"geojson",data:SCHOOL_POINTS});
 
@@ -181,7 +227,7 @@ map.on("load",()=>{
   });
 
   const bounds=new maplibregl.LngLatBounds();
-  radios.features.forEach(f=>{
+  activeRadios.features.forEach(f=>{
     const groups=f.geometry.type==="Polygon"?f.geometry.coordinates:f.geometry.coordinates.flat();
     groups.flat().forEach(c=>{
       if(Array.isArray(c)&&typeof c[0]==="number") bounds.extend(c);
@@ -189,18 +235,29 @@ map.on("load",()=>{
   });
   map.fitBounds(bounds,{padding:{top:35,bottom:35,left:35,right:35},pitch:56,bearing:-18,duration:0});
 
-  const showRadio=(e)=>{
-    const p=e.features[0].properties;
+  const hoverPopup=new maplibregl.Popup({closeButton:false,closeOnClick:false,offset:12});
+  const showRadio=(feature,lngLat)=>{
+    const p=feature.properties;
     document.getElementById("selectedInfo").innerHTML=selectedHtml(p);
-    new maplibregl.Popup({closeButton:false,offset:10})
-      .setLngLat(e.lngLat)
-      .setHTML(`<b>Radio ${p.LINK}</b><br>Estudiantes: ${p.n}<br>NBI: ${Number(p.pct_nbi).toFixed(1)}%<br>IA: ${p.top_ia||"—"}`)
+    hoverPopup
+      .setLngLat(lngLat)
+      .setHTML(selectedHtml(p))
       .addTo(map);
   };
-  map.on("click","radios-3d",showRadio);
-  map.on("click","radios-base",e=>{ if(e.features[0].properties.n===0) showRadio(e); });
-  map.on("mouseenter","radios-3d",()=>map.getCanvas().style.cursor="pointer");
-  map.on("mouseleave","radios-3d",()=>map.getCanvas().style.cursor="");
+  map.on("mousemove",e=>{
+    const features=map.queryRenderedFeatures(e.point,{layers:["radios-3d","radios-base"]});
+    if(features.length){
+      map.getCanvas().style.cursor="pointer";
+      showRadio(features[0],e.lngLat);
+    }else{
+      map.getCanvas().style.cursor="";
+      hoverPopup.remove();
+    }
+  });
+  map.getCanvas().addEventListener("mouseleave",()=>{
+    map.getCanvas().style.cursor="";
+    hoverPopup.remove();
+  });
 
   document.getElementById("threshold").addEventListener("change",e=>{
     map.setFilter("labels",[">=",["get","n"],Number(e.target.value)]);
@@ -211,5 +268,9 @@ map.on("load",()=>{
   document.getElementById("toggleSchools").addEventListener("change",e=>map.setLayoutProperty("schools","visibility",e.target.checked?"visible":"none"));
   document.getElementById("toggleLabels").addEventListener("change",e=>map.setLayoutProperty("labels","visibility",e.target.checked?"visible":"none"));
   document.getElementById("pitch").addEventListener("input",e=>map.easeTo({pitch:Number(e.target.value),duration:150}));
+  document.getElementById("themeToggle").addEventListener("click",toggleMapTheme);
+  document.addEventListener("keydown",e=>{
+    if(e.key.toLowerCase()==="l"&&!/input|select|textarea/i.test(document.activeElement?.tagName||"")) toggleMapTheme();
+  });
 });
 
