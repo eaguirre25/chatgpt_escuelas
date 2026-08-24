@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>IA predominante y NBI | General San Martín</title>
+  <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app">
+    <header class="topbar">
+      <div>
+        <h1>IA PREDOMINANTE Y NBI POR RADIO CENSAL <span>| GENERAL SAN MARTÍN (CENSO 2022)</span></h1>
+        <p>Cada columna representa un radio censal. La <b>altura</b> indica la cantidad de estudiantes encuestados. El <b>color</b> indica el % de hogares con NBI. La etiqueta muestra la IA más elegida.</p>
+      </div>
+      <div class="kpis">
+        <div class="kpi"><small>RESPUESTAS COMPLETAS</small><strong>61</strong><span>georreferenciadas: 60</span></div>
+        <div class="kpi"><small>DENTRO DE SAN MARTÍN</small><strong>50</strong><span>estudiantes</span></div>
+        <div class="kpi"><small>RADIOS CON RESPUESTAS</small><strong>30 <em>/ 524</em></strong><span>activados</span></div>
+      </div>
+    </header>
+
+    <main class="layout">
+      <aside class="panel left-panel">
+        <section>
+          <h2>ALTURA (Nº de estudiantes)</h2>
+          <div class="height-key">
+            <div><i style="height:24px"></i><span>1<br><small>mínimo</small></span></div>
+            <div><i style="height:48px"></i><span>3<br><small>medio</small></span></div>
+            <div><i style="height:76px"></i><span>6<br><small>máximo</small></span></div>
+          </div>
+        </section>
+        <section>
+          <h2>COLOR DE BASE (% NBI)</h2>
+          <p class="muted">Censo 2022</p>
+          <div id="nbiLegend" class="legend-list"></div>
+        </section>
+        <section>
+          <h2>MOSTRAR ETIQUETAS (IA)</h2>
+          <label class="field">Umbral mínimo de estudiantes
+            <select id="threshold">
+              <option value="1">1 estudiante</option>
+              <option value="2">2 estudiantes</option>
+              <option value="3" selected>3 estudiantes</option>
+            </select>
+          </label>
+        </section>
+        <section>
+          <h2>CAPAS</h2>
+          <label><input id="toggle3d" type="checkbox" checked> Altura 3D (Nº estudiantes)</label>
+          <label><input id="toggleNbi" type="checkbox" checked> % NBI (color de base)</label>
+          <label><input id="togglePoints" type="checkbox" checked> Puntos estudiantes</label>
+          <label><input id="toggleSchools" type="checkbox" checked> Escuelas</label>
+          <label><input id="toggleLabels" type="checkbox" checked> Etiquetas IA</label>
+        </section>
+        <section>
+          <h2>INCLINACIÓN 3D</h2>
+          <input id="pitch" type="range" min="0" max="70" value="56">
+          <div class="range-labels"><span>Plano</span><span>3D</span></div>
+        </section>
+      </aside>
+
+      <section class="map-shell">
+        <div id="map"></div>
+        <div class="map-note">Altura = cantidad de estudiantes · Color = % de hogares con NBI</div>
+      </section>
+
+      <aside class="right-col">
+        <section class="panel">
+          <h2>REFERENCIAS</h2>
+          <div class="refs">
+            <div><i class="dot student"></i> Estudiantes (50)</div>
+            <div><i class="square school"></i> Escuelas (2)</div>
+            <div><i class="line boundary"></i> Límite de General San Martín</div>
+            <div><i class="line radios"></i> Radios censales (Censo 2022)</div>
+          </div>
+        </section>
+        <section class="panel">
+          <h2>IA PREDOMINANTE <span>(RADIOS ACTIVOS)</span></h2>
+          <div id="iaBars" class="bars"></div>
+        </section>
+        <section class="panel">
+          <h2>% NBI EN RADIOS ACTIVOS</h2>
+          <div id="nbiBars" class="bars"></div>
+        </section>
+        <section class="panel selected">
+          <h2>RADIO SELECCIONADO</h2>
+          <div id="selectedInfo" class="muted">Hacé clic sobre un radio.</div>
+        </section>
+      </aside>
+    </main>
+
+    <footer>
+      <div>Fuente: Encuesta estudiantes georreferenciada y Censo Nacional de Población, Hogares y Viviendas 2022 (INDEC) · NBI.</div>
+      <div>Mapa base © OpenStreetMap contributors · Visualización con MapLibre GL JS.</div>
+    </footer>
+  </div>
+
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
