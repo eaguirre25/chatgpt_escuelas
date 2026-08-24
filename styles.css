@@ -40,6 +40,8 @@ h1 span{font-weight:500}
 .legend-swatch{width:27px;height:13px;border:1px solid rgba(255,255,255,.25)}
 .map-shell{position:relative;border:1px solid #334752;border-radius:10px;overflow:hidden;background:#0b1620;min-width:0}
 #map{position:absolute;inset:0}
+.theme-toggle{position:absolute;top:12px;left:12px;z-index:4;border:1px solid #60717d;border-radius:8px;background:rgba(6,16,25,.92);color:#f4f7fb;padding:8px 11px;font:600 11px Inter,Segoe UI,Arial,sans-serif;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.theme-toggle:hover,.theme-toggle:focus-visible{background:#10283a;border-color:#8ba1af;outline:none}
 .map-note{position:absolute;left:14px;bottom:14px;z-index:3;background:rgba(6,16,25,.9);border:1px solid #3b505e;border-radius:8px;padding:7px 10px;font-size:11px;color:#dce7ef;pointer-events:none}
 .right-col{display:grid;grid-template-rows:auto auto auto 1fr;gap:9px;align-self:start}
 .right-col>.panel{padding:12px}
@@ -60,6 +62,7 @@ h1 span{font-weight:500}
 .selected{min-height:120px}
 footer{margin:10px 12px 0;padding:10px 14px 13px;border-top:1px solid #2a3d49;color:#bdc8d0;font-size:10px;display:flex;justify-content:space-between;gap:15px}
 .maplibregl-popup-content{background:#071421!important;color:white!important;border:1px solid #4b606d;border-radius:8px!important;padding:10px!important}
+.maplibregl-popup-content div{line-height:1.35}
 .maplibregl-popup-tip{border-top-color:#071421!important}
 @media(max-width:1050px){
   .layout{grid-template-columns:190px 1fr}.right-col{grid-column:1/-1;grid-template-columns:repeat(4,1fr)}
@@ -71,3 +74,4 @@ footer{margin:10px 12px 0;padding:10px 14px 13px;border-top:1px solid #2a3d49;co
   .map-shell{height:620px}
   footer{display:block}footer div+div{margin-top:6px}
 }
+
