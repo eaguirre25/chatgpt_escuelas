@@ -168,7 +168,7 @@ map.on("load",()=>{
     layout:{
       "text-field":["get","top_ia"],
       "text-size":["interpolate",["linear"],["get","n"],1,10,6,17],
-      "text-font":["Open Sans Bold"],
+      "text-font":["Noto Sans Regular"],
       "text-anchor":"center",
       "text-allow-overlap":false,
       "text-ignore-placement":false
@@ -212,3 +212,4 @@ map.on("load",()=>{
   document.getElementById("toggleLabels").addEventListener("change",e=>map.setLayoutProperty("labels","visibility",e.target.checked?"visible":"none"));
   document.getElementById("pitch").addEventListener("input",e=>map.easeTo({pitch:Number(e.target.value),duration:150}));
 });
+
