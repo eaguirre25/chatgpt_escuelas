@@ -1,1 +1,2 @@
-__PLACEHOLDER__
+window.RADIOS_RAW=[];
+
